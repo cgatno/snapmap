@@ -79,9 +79,16 @@ test("resets expiration time on data update", done => {
   setTimeout(() => {
     const existsAfterFirstInterval = sm.has(key);
     expect(existsAfterFirstInterval).toBe(true);
-    done();
   }, expirationTime1);
 
+  // Key should be gone after new expiration elapses
+  setTimeout(() => {
+    const existsAfterFirstInterval = sm.has(key);
+    expect(existsAfterFirstInterval).toBe(false);
+    done();
+  }, expirationTime2 * (1 + 5 / 100)); // 5% grace period to account for processing above code
+
+  // Perform the actual update which should reset the timer
   const newVal = Math.random() * 10;
   sm.set(key, newVal, expirationTime2);
 });

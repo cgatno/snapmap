@@ -19,7 +19,7 @@ class SnapMap extends Map {
       // Splice out old record
       this.expiringKeys.splice(expiryIndex, 1);
       // If it was the next item to be removed, reset timer
-      if (expiryIndex && expiryIndex === 0) {
+      if (expiryIndex === 0) {
         this._removeNextExpiringKey();
       }
     }
