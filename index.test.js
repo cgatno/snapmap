@@ -62,7 +62,7 @@ test("expires data added consecutively with same expiration time", done => {
   }, expirationTime);
 });
 
-test("resets expiration time on data update", done => {
+test("resets expiration time on update via set() call", done => {
   const sm = new SnapMap();
 
   const expirationTime1 = 100;
@@ -86,9 +86,67 @@ test("resets expiration time on data update", done => {
     const existsAfterFirstInterval = sm.has(key);
     expect(existsAfterFirstInterval).toBe(false);
     done();
-  }, expirationTime2 * (1 + 5 / 100)); // 5% grace period to account for processing above code
+  }, expirationTime2 + 1); // 5% grace period to account for processing above code
 
   // Perform the actual update which should reset the timer
   const newVal = Math.random() * 10;
   sm.set(key, newVal, expirationTime2);
+});
+
+test("expires data in correct order regardless of set order", done => {
+  const sm = new SnapMap();
+
+  const expirationTime1 = 100;
+  const expirationTime2 = 200;
+
+  const key1 = "expires-first";
+  const key2 = "expires-second";
+
+  const val1 = Math.random() * 100;
+  const val2 = Math.random() * 100;
+
+  // IMPORTANT PART OF THE TEST
+  // Set second expiration first
+  sm.set(key2, val2, expirationTime2);
+  // Then first expiration
+  sm.set(key1, val1, expirationTime1);
+
+  // After first expiration time, key1 should be gone, key2 should still be alive
+  setTimeout(() => {
+    expect(sm.has(key1)).toBe(false);
+    expect(sm.get(key2)).toBe(val2);
+  }, expirationTime1);
+
+  // After second expiration, both key1 and key2 should be gone
+  setTimeout(() => {
+    expect(sm.has(key1)).toBe(false);
+    expect(sm.has(key2)).toBe(false);
+    done();
+  }, expirationTime2);
+
+  // Both keys should exist
+  expect(sm.get(key1)).toBe(val1);
+  expect(sm.get(key2)).toBe(val2);
+});
+
+test("handles very closely spaced expiration intervals", done => {
+  const numEntries = 5;
+  const sm = new SnapMap();
+
+  sm.set(1, 1, 10);
+  sm.set(2, 2, 12);
+  sm.set(3, 3, 13);
+
+  setTimeout(() => {
+    expect(sm.has(1)).toBe(false);
+  }, 10);
+
+  setTimeout(() => {
+    expect(sm.has(2)).toBe(false);
+  }, 13);
+
+  setTimeout(() => {
+    expect(sm.has(3)).toBe(false);
+    done();
+  }, 13);
 });

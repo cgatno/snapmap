@@ -15,7 +15,10 @@
     "map expiration",
     "object expiration",
     "data expiration",
-    "automatically delete data"
+    "automatically delete data",
+    "ttl",
+    "key/value",
+    "dictionary"
   ],
   "author":
     "Christian Gaetano <hello@christiangaetano.com> (https://christiangaetano.com)",
