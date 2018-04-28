@@ -1,5 +1,12 @@
 const SnapMap = require("./index");
 
+// Add a percentage
+const addErrorToValue = (val, percentError) => {
+  const errorFactor = percentError / 100;
+  const errorAmt = errorFactor * val;
+  return errorAmt + val;
+};
+
 test("stores key/value pairs like a normal map", () => {
   const sm = new SnapMap();
 
@@ -83,10 +90,9 @@ test("resets expiration time on update via set() call", done => {
 
   // Key should be gone after new expiration elapses
   setTimeout(() => {
-    const existsAfterFirstInterval = sm.has(key);
-    expect(existsAfterFirstInterval).toBe(false);
+    expect(sm.has(key)).toBe(false);
     done();
-  }, expirationTime2 + 1); // 5% grace period to account for processing above code
+  }, addErrorToValue(expirationTime2, 5)); // 5% grace period to account for processing above code
 
   // Perform the actual update which should reset the timer
   const newVal = Math.random() * 10;
@@ -122,31 +128,9 @@ test("expires data in correct order regardless of set order", done => {
     expect(sm.has(key1)).toBe(false);
     expect(sm.has(key2)).toBe(false);
     done();
-  }, expirationTime2);
+  }, addErrorToValue(expirationTime2, 5));
 
   // Both keys should exist
   expect(sm.get(key1)).toBe(val1);
   expect(sm.get(key2)).toBe(val2);
-});
-
-test("handles very closely spaced expiration intervals", done => {
-  const numEntries = 5;
-  const sm = new SnapMap();
-
-  sm.set(1, 1, 10);
-  sm.set(2, 2, 12);
-  sm.set(3, 3, 13);
-
-  setTimeout(() => {
-    expect(sm.has(1)).toBe(false);
-  }, 10);
-
-  setTimeout(() => {
-    expect(sm.has(2)).toBe(false);
-  }, 13);
-
-  setTimeout(() => {
-    expect(sm.has(3)).toBe(false);
-    done();
-  }, 13);
 });

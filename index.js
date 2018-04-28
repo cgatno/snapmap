@@ -1,140 +1,161 @@
-class Node {
-  constructor(data, left = null, right = null) {
-    this.data = data;
-    this.left = left;
-    this.right = right;
-  }
-}
-
-class BST {
+class ExpMinHeap {
   constructor() {
-    this.root = null;
+    this.heap = [];
+    this.entryMap = {};
+    this.keyToTimeMap = {};
   }
 
-  insert(data) {
-    const node = new Node(data);
-    if (this.root === null) {
-      this.root = node;
+  // Insertion `element` has the form
+  //  {
+  //    value: number,
+  //    keyname: string
+  //  }
+  push(element) {
+    if (this.entryMap[element.value]) {
+      this.entryMap[element.value].push(element.keyname);
     } else {
-      let current = this.root;
-      let parent;
-      while (true) {
-        parent = current;
-        if (data < current.data) {
-          current = current.left;
-          if (current === null) {
-            parent.left = node;
-            break;
-          }
-        } else {
-          current = current.right;
-          if (current === null) {
-            parent.right = node;
-            break;
-          }
-        }
-      }
-    }
-  }
+      this.entryMap[element.value] = [element.keyname];
 
-  getMin() {
-    let current = this.root;
-    if (!current) {
-      return null;
-    }
-    while (current.left !== null) {
-      current = current.left;
-    }
-    return current;
-  }
+      this.heap.push(element.value);
 
-  remove(data) {
-    const removeNode = function(node, data) {
-      if (!node) {
-        return null;
-      }
-      if (data === node.data) {
-        if (!node.left && !node.right) {
-          return null;
-        }
-        if (!node.left) {
-          return node.right;
-        }
-        if (!node.right) {
-          return node.left;
-        }
-        // 2 children
-        const temp = that.getMin(node.right);
-        node.data = temp;
-        node.right = removeNode(node.right, temp);
-        return node;
-      } else if (data < node.data) {
-        node.left = removeNode(node.left, data);
-        return node;
-      } else {
-        node.right = removeNode(node.right, data);
-        return node;
-      }
+      this._bubbleUp(this.heap.length - 1);
+    }
+    this.keyToTimeMap[element.keyname] = {
+      expTime: element.value,
+      idx: this.entryMap[element.value].length - 1
     };
-    this.root = removeNode(this.root, data);
+  }
+
+  pruneKey(keyName) {
+    if (this.keyToTimeMap[keyName]) {
+      const keyInfo = this.keyToTimeMap[keyName];
+      this.entryMap[keyInfo.expTime].splice(keyInfo.idx, 1);
+    }
+  }
+
+  getNextExpTime() {
+    return this.heap[0];
+  }
+
+  pop() {
+    const result = this.heap[0];
+    const end = this.heap.pop();
+
+    if (this.heap.length > 0) {
+      this.heap[0] = end;
+      this._sinkDown(0);
+    }
+
+    // Append all stored key names to result data
+    const allKeys = {
+      allKeys: this.entryMap[result]
+    };
+    // Remove result data for this entry
+    delete this.entryMap[result];
+
+    return allKeys;
+  }
+
+  size() {
+    return this.heap.length;
+  }
+
+  _bubbleUp(idx) {
+    const element = this.heap[idx];
+
+    while (idx > 0) {
+      const parentIdx = Math.floor((idx + 1) / 2) - 1;
+      const parent = this.heap[parentIdx];
+
+      // If parent has smaller value, order is correct
+      if (parent < element) {
+        break;
+      }
+
+      // Otherwise, swap them
+      this.heap[parentIdx] = element;
+      this.heap[idx] = parent;
+      idx = parentIdx;
+    }
+  }
+
+  _sinkDown(idx) {
+    const length = this.heap.length;
+    const element = this.heap[idx];
+
+    while (true) {
+      const child2idx = (idx + 1) * 2;
+      const child1idx = child2idx - 1;
+
+      let swap;
+      let child1;
+
+      if (child1idx < length) {
+        child1 = this.heap[child1idx];
+
+        if (child1 < element) {
+          swap = child1idx;
+        }
+      }
+
+      if (child2idx < length) {
+        const child2 = this.heap[child2idx];
+
+        if (child2 < (typeof swap === "undefined" ? element : child1)) {
+          swap = child2idx;
+        }
+      }
+
+      if (typeof swap === "undefined") {
+        break;
+      }
+
+      this.heap[idx] = this.heap[swap];
+      this.heap[swap] = element;
+      idx = swap;
+    }
   }
 }
 
+// Extends native ES6 Map object
 class SnapMap extends Map {
   constructor(...args) {
     // Pass any and all args to parent constructor
     super(...args);
 
-    // Keep track of expiration times in binary search tree
-    // O(log n) accession and insertion
-    this.expiringKeys = new BST();
-
-    // Also use a plain object to keep track of all keys expiring at a given time
-    this.expirationTimeToKey = {};
-
-    // And finally, keep track of keys to expiration times for data updates
-    this.keyToExpirationTime = {};
-
-    // For efficiency, use only one timer to remove expiring keys
+    this.heap = new ExpMinHeap();
     this.expirationTimer = null;
   }
 
   // expiresIn: Time period in milliseconds after which the entry is automatically erased.
-  set(key, value, expiresIn) {
-    // Determine if this is an update
-    const update = super.has(key);
+  set(key, value, ttl) {
+    if (super.has(key)) {
+      this.heap.pruneKey(key);
+    }
 
     // Store new pair in parent Map
     super.set(key, value);
 
-    if (update) {
-      // Remove key from old expiration time entry
-      const oldTime = this.keyToExpirationTime[key];
-      const index = this.expirationTimeToKey[oldTime].indexOf(key);
-      this.expirationTimeToKey[oldTime].splice(index, 1);
-    }
+    if (typeof ttl !== "undefined") {
+      // If new value expires sooner than current expiry, stop timer to reset
+      const expTime = Date.now() + ttl;
 
-    // Immediately store desired expiration time
-    const expirationTime = expiresIn && Date.now() + expiresIn;
+      this.heap.push({
+        value: expTime,
+        keyname: key
+      });
 
-    if (expirationTime) {
-      // Stop running timers
-      this._stopExpirationTimer();
-
-      if (this.expirationTimeToKey[expirationTime]) {
-        // Expiration time already registered for other keys, add new key
-        this.expirationTimeToKey[expirationTime].push(key);
-      } else {
-        // New expiration time in map
-        this.expirationTimeToKey[expirationTime] = [key];
-        // Also add expiration time to BST
-        this.expiringKeys.insert(expirationTime);
+      if (this.heap.getNextExpTime() === expTime) {
+        this._stopExpirationTimer();
       }
 
-      this.keyToExpirationTime[key] = expirationTime;
-
-      // Restart timer
-      this._startExpirationTimer();
+      if (this.expirationTimer === null) {
+        // Restart timer
+        this.expirationTimer = setTimeout(
+          () => this._expirationTimerTick(),
+          ttl + Date.now()
+        );
+      }
     }
   }
 
@@ -146,46 +167,25 @@ class SnapMap extends Map {
     }
   }
 
-  _startExpirationTimer(nextExpiration) {
-    // Clear if timer is currently running
-    this._stopExpirationTimer();
+  _expirationTimerTick() {
+    // Remove timer reference
+    this.expirationTimer = null;
 
-    // Attempt to get next expiration record
-    const next = nextExpiration || this.expiringKeys.getMin();
-    if (next) {
-      // Set up a new timeout to run when next expiration time reached
+    // Remove expiring keys
+    const expiredKeys = this.heap.pop().allKeys;
+
+    if (expiredKeys.length > 1) {
+      expiredKeys.forEach(key => this.delete(key));
+    } else {
+      this.delete(expiredKeys[0]);
+    }
+
+    // If more expiring keys coming up, restart timer
+    if (this.heap.size() > 0) {
       this.expirationTimer = setTimeout(
-        () => this._expirationTimerTick(next.data),
-        next.data - Date.now()
+        () => this._expirationTimerTick(),
+        this.heap.getNextExpTime() - Date.now()
       );
-    }
-  }
-
-  _expirationTimerTick(expiringTime) {
-    // Stop currently running timer
-    this._stopExpirationTimer();
-
-    // Get next expiration and remove from parent Map
-    const expired = expiringTime || this.expiringKeys.getMin().data;
-    if (expired) {
-      if (this.expirationTimeToKey[expired].length > 1) {
-        this.expirationTimeToKey[expired].forEach(key => {
-          this.delete(key);
-          delete this.keyToExpirationTime[key];
-        });
-      } else if (this.expirationTimeToKey[expired].length === 1) {
-        const key = this.expirationTimeToKey[expired][0];
-        this.delete(key);
-        delete this.keyToExpirationTime[key];
-      }
-    }
-
-    this.expiringKeys.remove(expired);
-    delete this.expirationTimeToKey[expired];
-
-    let next = this.expiringKeys.getMin();
-    if (next) {
-      this._startExpirationTimer(next.data);
     }
   }
 }
