@@ -34,7 +34,7 @@ class SnapMap extends Map {
     // Store new data in parent Map
     super.set(key, value);
 
-    if (Number(ttl) > 0) {
+    if (typeof ttl !== "undefined") {
       // TTL specified, schedule deletion
       (async (key, delay) => {
         await sleep(delay);
