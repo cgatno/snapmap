@@ -3,7 +3,8 @@
  * @param {number} duration Amount of time, in milliseconds, to delay function execution.
  * @returns {Promise} Promise that resolves after specified duration.
  */
-const sleep = duration => new Promise(resolve => setTimeout(resolve, duration));
+const sleep = duration =>
+  new Promise(resolve => setTimeout(resolve, Number(duration)));
 
 // Extends native ES6 Map object
 class SnapMap extends Map {
@@ -33,21 +34,19 @@ class SnapMap extends Map {
     // Store new data in parent Map
     super.set(key, value);
 
-    if (ttl) {
+    if (Number(ttl) > 0) {
       // TTL specified, schedule deletion
-      this._deleteKey(key, ttl);
+      (async (key, delay) => {
+        await sleep(delay);
+        if (this.updatedKeys.has(key)) {
+          this.updatedKeys.delete(key);
+          return;
+        }
+        super.delete(key);
+      })(key, ttl);
     }
 
     return this; // mimics default Map API
-  }
-
-  async _deleteKey(key, delay) {
-    await sleep(delay);
-    if (this.updatedKeys.has(key)) {
-      this.updatedKeys.delete(key);
-      return;
-    }
-    super.delete(key);
   }
 }
 

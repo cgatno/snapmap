@@ -26,18 +26,14 @@ test("expires data after a given time period", done => {
 
   // Generate random value for posterity
   const key = "random-value";
-  const value = Math.random() * 10;
 
-  sm.set(key, value, expirationTime);
-
-  const existsImmediately = sm.get(key) === value;
-  expect(existsImmediately).toBe(true);
+  sm.set(key, true, expirationTime);
+  expect(sm.has(key)).toBe(true);
 
   setTimeout(() => {
-    const existsAfterInterval = sm.get(key) === value;
-    expect(existsAfterInterval).toBe(false);
+    expect(sm.has(key)).toBe(false);
     done();
-  }, expirationTime + 30);
+  }, expirationTime + 1);
 });
 
 test("expires data added consecutively with same expiration time", done => {
