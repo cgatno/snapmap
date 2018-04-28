@@ -37,7 +37,7 @@ test("expires data after a given time period", done => {
     const existsAfterInterval = sm.get(key) === value;
     expect(existsAfterInterval).toBe(false);
     done();
-  }, expirationTime);
+  }, expirationTime + 30);
 });
 
 test("expires data added consecutively with same expiration time", done => {
@@ -78,25 +78,24 @@ test("resets expiration time on update via set() call", done => {
   const key = "volatile-key";
   // Random value for posterity
   const val = Math.random() * 10;
+  const newVal = Math.random() * 10;
 
   // Add data to expire in 100 ms
   sm.set(key, val, expirationTime1);
 
+  // Perform the actual update which should reset the timer
+  sm.set(key, newVal, expirationTime2);
+
   // Key should still exist after expiration time since we will update it
   setTimeout(() => {
-    const existsAfterFirstInterval = sm.has(key);
-    expect(existsAfterFirstInterval).toBe(true);
+    expect(sm.has(key)).toBe(true);
   }, expirationTime1);
 
   // Key should be gone after new expiration elapses
   setTimeout(() => {
     expect(sm.has(key)).toBe(false);
     done();
-  }, addErrorToValue(expirationTime2, 5)); // 5% grace period to account for processing above code
-
-  // Perform the actual update which should reset the timer
-  const newVal = Math.random() * 10;
-  sm.set(key, newVal, expirationTime2);
+  }, expirationTime2 + 1);
 });
 
 test("expires data in correct order regardless of set order", done => {
@@ -121,14 +120,14 @@ test("expires data in correct order regardless of set order", done => {
   setTimeout(() => {
     expect(sm.has(key1)).toBe(false);
     expect(sm.get(key2)).toBe(val2);
-  }, expirationTime1);
+  }, expirationTime1 + 1);
 
   // After second expiration, both key1 and key2 should be gone
   setTimeout(() => {
     expect(sm.has(key1)).toBe(false);
     expect(sm.has(key2)).toBe(false);
     done();
-  }, addErrorToValue(expirationTime2, 5));
+  }, expirationTime2 + 1);
 
   // Both keys should exist
   expect(sm.get(key1)).toBe(val1);
