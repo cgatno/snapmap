@@ -27,8 +27,10 @@ class SnapMap extends Map {
    */
   set(key, value, ttl) {
     // If key already exists, this is an update. Make sure scheduled deletion is aborted.
+    let timestamp;
     if (super.has(key)) {
-      this.updatedKeys.set(key, true);
+      timestamp = Date.now() * Math.random();
+      this.updatedKeys.set(key, timestamp);
     }
 
     // Store new data in parent Map
@@ -36,14 +38,16 @@ class SnapMap extends Map {
 
     if (typeof ttl !== "undefined") {
       // TTL specified, schedule deletion
-      (async (key, delay) => {
+      (async (key, delay, timestamp) => {
         await sleep(delay);
-        if (this.updatedKeys.has(key)) {
-          this.updatedKeys.delete(key);
+        if (
+          this.updatedKeys.has(key) &&
+          this.updatedKeys.get(key) !== timestamp
+        ) {
           return;
         }
         super.delete(key);
-      })(key, ttl);
+      })(key, ttl, timestamp);
     }
 
     return this; // mimics default Map API

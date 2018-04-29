@@ -70,28 +70,38 @@ test("resets expiration time on update via set() call", done => {
 
   const expirationTime1 = 100;
   const expirationTime2 = 200;
+  const expirationTime3 = 300;
 
   const key = "volatile-key";
   // Random value for posterity
   const val = Math.random() * 10;
-  const newVal = Math.random() * 10;
+  const secondVal = Math.random() * 10;
+  const thirdVal = Math.random() * 10;
 
   // Add data to expire in 100 ms
   sm.set(key, val, expirationTime1);
 
-  // Perform the actual update which should reset the timer
-  sm.set(key, newVal, expirationTime2);
+  // Perform a first update
+  sm.set(key, secondVal, expirationTime2);
+
+  // Perform second update for final reset
+  sm.set(key, thirdVal, expirationTime3);
 
   // Key should still exist after expiration time since we will update it
   setTimeout(() => {
     expect(sm.has(key)).toBe(true);
   }, expirationTime1);
 
-  // Key should be gone after new expiration elapses
+  // Key should still be there after second expiration time...
+  setTimeout(() => {
+    expect(sm.has(key)).toBe(true);
+  }, expirationTime2);
+
+  // Key should finally be gone after third expiration time
   setTimeout(() => {
     expect(sm.has(key)).toBe(false);
     done();
-  }, expirationTime2 + 1);
+  }, expirationTime3 + 1);
 });
 
 test("expires data in correct order regardless of set order", done => {
