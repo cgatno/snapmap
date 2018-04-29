@@ -1,8 +1,7 @@
 {
   "name": "snapmap",
   "version": "0.1.0",
-  "description":
-    "A tiny (< 1kb minified & gzip'd) and dependency-free extension of the ES6 Map object that lets you set an expiration time for key/value pairs.",
+  "description": "A tiny (< 1kb minified & gzip'd) and dependency-free extension of the ES6 Map object that lets you set an expiration time for key/value pairs.",
   "main": "index.js",
   "scripts": {
     "test": "jest",
@@ -21,8 +20,7 @@
     "key/value",
     "dictionary"
   ],
-  "author":
-    "Christian Gaetano <hello@christiangaetano.com> (https://christiangaetano.com)",
+  "author": "Christian Gaetano <hello@christiangaetano.com> (https://christiangaetano.com)",
   "license": "MIT",
   "repository": {
     "type": "git",
