@@ -53,6 +53,53 @@ That means...
 * All modern browsers supported
 * Node 8+ supported
 
+## Special Scenarios
+
+### Key Updates
+
+If you update a key with a new ttl, the key/value pair won't be deleted until the new ttl elapses:
+
+```javascript
+const SnapMap = require("snapmap");
+
+const dynamicMap = new SnapMap();
+
+// Let's say it's 01:00:00 PM here
+dynamicMap.set("key1", "val", 60 * 1000);
+
+// 30 seconds later... (01:00:30 PM)
+dynamicMap.set("key1", "newVal", 60 * 1000);
+
+// 30 more seconds go by... (01:01:00 PM)
+dynamicMap.get("key1"); // 'newVal' - still exists 60s after original set
+
+// And 30 more seconds... (01:01:30 PM)
+dynamicMap.get("key1"); // undefined - data deleted after second ttl
+```
+
+This means that you can effectively **abort scheduled deletes** by updating a key and passing no ttl value:
+
+```javascript
+dynamicMap.set("persistKey", "value", 10 * 1000);
+
+// Less than 10s later
+dynamicMap.set("persistKey", "newVal");
+
+// Some time in the distant future...
+dynamicMap.get("persistKey"); // 'newVal' - data is never deleted
+```
+
+### Caveats
+
+This package uses the `setTimeout()` function to schedule deletions by 'sleeping' execution of an async function. (Take a look at the source to see exactly how this is done.) If you're familiar with the typical JS engine event loop, that probably scares you quite a bit. And rightfully so! Because of the reliance on `setTimeout`, **scheduled deletion times are not exact.** They will never occur earlier than requested, but they may be delayed.
+
+For more information on what causes `setTimeout` delays and browser throttling of `setTimeout`, check out [MDN's explanation](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout#Reasons_for_delays_longer_than_specified).
+
+## Roadmap 🛣🗺
+
+* Investigate alternate scheduling methods (higher resolution than `setTimeout`)
+* Allow key updates that preserve original ttl
+
 ## Contributing
 
 All are welcomed _and encouraged_ to contribute to this project!
