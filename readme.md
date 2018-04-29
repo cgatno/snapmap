@@ -1,4 +1,4 @@
-# Snapmap 📫⏳📭
+# Snapmap 📬⏳📭
 
 [![npm version](https://badge.fury.io/js/snapmap.svg)](https://badge.fury.io/js/snapmap)
 
@@ -15,7 +15,7 @@ const uniqueObj = { uniqueData: [1, 2, 3] };
 myMap.set(
   uniqueObj,
   `🦄`,
-  10 * 1000)
+  10 * 1000) // time (in ms) until data is deleted
 );
 
 console.log(myMap.get(uniqueObj)) // `🦄`
