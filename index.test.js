@@ -104,6 +104,22 @@ test("resets expiration time on update via set() call", done => {
   }, expirationTime3 + 1);
 });
 
+test("does not delete keys that have been updated with undefined ttl", done => {
+  const sm = new SnapMap();
+
+  // Initial key set, scheduled for 1s ttl
+  sm.set("key1", "val1", 1000);
+
+  // Update key1 with no ttl
+  sm.set("key1", "newVal");
+
+  // Expect key1 to exist even after 3 seconds
+  setTimeout(() => {
+    expect(sm.get("key1")).toBe("newVal");
+    done();
+  }, 3000);
+});
+
 test("expires data in correct order regardless of set order", done => {
   const sm = new SnapMap();
 
@@ -138,4 +154,30 @@ test("expires data in correct order regardless of set order", done => {
   // Both keys should exist
   expect(sm.get(key1)).toBe(val1);
   expect(sm.get(key2)).toBe(val2);
+});
+
+test("does not block execution", done => {
+  const sm = new SnapMap();
+
+  // A value we can increment during function execution
+  let doing = 0;
+
+  // Schedule a key deletion in 2s which starts timer
+  sm.set("nonblocking", `⛔️`, 2000);
+  const startTime = Date.now(); // save start time
+
+  setTimeout(() => {
+    expect(doing).toBe(100);
+    expect(sm.has("nonblocking")).toBe(false);
+    done();
+  }, 2000 + 1);
+
+  // Increment while timer is waiting
+  for (let i = 0; i < 100; i++) {
+    doing++;
+  }
+
+  expect(sm.has("nonblocking")).toBe(true);
+  expect(doing).toBe(100);
+  expect(Date.now() - startTime).toBeLessThan(2000); // All of the above should be true before the timer ticks
 });
