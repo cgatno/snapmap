@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/snapmap.svg)](https://badge.fury.io/js/snapmap)
 
-A tiny (< 1kb minified & gzip'd) extension of the ES6 [Map object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) that lets you set an expiration time for key/value pairs.
+A tiny (~1kb minified & gzip'd) extension of the ES6 [Map object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map) that lets you set an expiration time for key/value pairs. Expired data is automatically pruned to avoid wasting memory.
 
 ## Getting Started
 
@@ -91,14 +91,17 @@ dynamicMap.get("persistKey"); // 'newVal' - data is never deleted
 
 ### Caveats
 
+**1.2.0 Update:** Version 1.2.0 adds ttl "clamping" behavior which mitigates `setTimeout` delays. Now, Snapmap will always correctly report that expired keys do not exist, and `get` operations will return `undefined`. See the [change commit](https://github.com/cgatno/snapmap/commit/a7ff594a82b8db6f24e834f4ed8866f94ffaffac) for more information.
+
 This package uses the `setTimeout()` function to schedule deletions by 'sleeping' execution of an async function. (Take a look at the source to see exactly how this is done.) If you're familiar with the typical JS engine event loop, that probably scares you quite a bit. And rightfully so! Because of the reliance on `setTimeout`, **scheduled deletion times are not exact.** They will never occur earlier than requested, but they may be delayed.
 
 For more information on what causes `setTimeout` delays and browser throttling of `setTimeout`, check out [MDN's explanation](https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout#Reasons_for_delays_longer_than_specified).
 
 ## Roadmap 🛣🗺
 
-* Investigate alternate scheduling methods (higher resolution than `setTimeout`)
 * Allow key updates that preserve original ttl
+* Update tests to use higher resolution test methods (false negatives from inaccurate `setTimeout`)
+* ~~Investigate alternate scheduling methods (higher resolution than `setTimeout`)~~
 
 ## Contributing
 
