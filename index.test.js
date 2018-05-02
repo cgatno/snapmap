@@ -181,3 +181,16 @@ test("does not block execution", done => {
   expect(doing).toBe(100);
   expect(Date.now() - startTime).toBeLessThan(2000); // All of the above should be true before the timer ticks
 });
+
+test("emits deletion events", done => {
+  const sm = new SnapMap();
+
+  sm.set("listeningKey", "👂", 2000);
+  let testVal;
+  sm.onDelete = key => (testVal = key);
+
+  setTimeout(() => {
+    expect(testVal).toBe("listeningKey");
+    done();
+  }, 2500);
+});

@@ -89,6 +89,23 @@ dynamicMap.set("persistKey", "newVal");
 dynamicMap.get("persistKey"); // 'newVal' - data is never deleted
 ```
 
+### Monitoring Delete Events
+
+You can easily subscribe to the `onDelete` event to be notified when a scheduled delete occurs. The `onDelete` function is passed a single parameter, the deleted key:
+
+```javascript
+const SnapMap = require("snapmap");
+
+const monitorMap = new SnapMap();
+
+monitorMap.set("monitoredKey", "val", 60 * 1000);
+
+monitorMap.onDelete = key => console.log(key);
+
+// 60 seconds later:
+// "monitoredKey"
+```
+
 ### Caveats
 
 **1.2.0 Update:** Version 1.2.0 adds ttl "clamping" behavior which mitigates `setTimeout` delays. Now, Snapmap will always correctly report that expired keys do not exist, and `get` operations will return `undefined`. See the [change commit](https://github.com/cgatno/snapmap/commit/a7ff594a82b8db6f24e834f4ed8866f94ffaffac) for more information.

@@ -40,6 +40,11 @@ class SnapMap extends Map {
         }
         this.timestamps.delete(key);
         super.delete(key);
+
+        // Call event hook with deleted key when deletion occurs
+        if (typeof this.onDelete === "function") {
+          this.onDelete(key);
+        }
       })(key, ttl, timestamp);
     } else {
       // No ttl defined - make sure timestamps excludes this key
