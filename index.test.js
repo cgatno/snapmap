@@ -33,7 +33,7 @@ test("expires data after a given time period", done => {
   setTimeout(() => {
     expect(sm.has(key)).toBe(false);
     done();
-  }, expirationTime + 1);
+  }, expirationTime);
 });
 
 test("expires data added consecutively with same expiration time", done => {
@@ -101,7 +101,7 @@ test("resets expiration time on update via set() call", done => {
   setTimeout(() => {
     expect(sm.has(key)).toBe(false);
     done();
-  }, expirationTime3 + 1);
+  }, expirationTime3);
 });
 
 test("does not delete keys that have been updated with undefined ttl", done => {
@@ -142,14 +142,14 @@ test("expires data in correct order regardless of set order", done => {
   setTimeout(() => {
     expect(sm.has(key1)).toBe(false);
     expect(sm.get(key2)).toBe(val2);
-  }, expirationTime1 + 1);
+  }, expirationTime1);
 
   // After second expiration, both key1 and key2 should be gone
   setTimeout(() => {
     expect(sm.has(key1)).toBe(false);
     expect(sm.has(key2)).toBe(false);
     done();
-  }, expirationTime2 + 1);
+  }, expirationTime2);
 
   // Both keys should exist
   expect(sm.get(key1)).toBe(val1);
@@ -170,7 +170,7 @@ test("does not block execution", done => {
     expect(doing).toBe(100);
     expect(sm.has("nonblocking")).toBe(false);
     done();
-  }, 2000 + 1);
+  }, 2000);
 
   // Increment while timer is waiting
   for (let i = 0; i < 100; i++) {

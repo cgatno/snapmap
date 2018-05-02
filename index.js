@@ -12,10 +12,10 @@ class SnapMap extends Map {
     // Pass any and all arguments to parent constructor
     super(...args);
 
-    // Use another Map to track key updates. This allows scheduled deletes to abort if their key
-    // has been updated after the original scheduling.
-    // Necessary to use Map here to support any key type
-    this.updatedKeys = new Map();
+    // Use another Map to track timestamps. This will effectively clamp expired values in case their timer
+    // tick is delayed due to event loop inconsistencies. This also allows tracking of key updates for aborting
+    // deletes on updated keys.
+    this.timestamps = new Map();
   }
 
   /**
@@ -26,31 +26,54 @@ class SnapMap extends Map {
    * @returns {SnapMap} The SnapMap object.
    */
   set(key, value, ttl) {
-    // If key already exists, this is an update. Make sure scheduled deletion is aborted.
-    let timestamp;
-    if (super.has(key)) {
-      timestamp = Date.now() * Math.random();
-      this.updatedKeys.set(key, timestamp);
-    }
-
-    // Store new data in parent Map
-    super.set(key, value);
+    // Calculate future timestamp now
+    const timestamp = Date.now() + ttl || 0;
 
     if (typeof ttl !== "undefined") {
+      // Set/update timestamp
+      this.timestamps.set(key, timestamp);
       // TTL specified, schedule deletion
       (async (key, delay, timestamp) => {
         await sleep(delay);
-        if (
-          this.updatedKeys.has(key) &&
-          this.updatedKeys.get(key) !== timestamp
-        ) {
+        if (this.timestamps.get(key) !== timestamp) {
           return;
         }
+        this.timestamps.delete(key);
         super.delete(key);
       })(key, ttl, timestamp);
+    } else {
+      // No ttl defined - make sure timestamps excludes this key
+      this.timestamps.delete(key);
     }
 
-    return this; // mimics default Map API
+    return super.set(key, value); // mimics default Map API
+  }
+
+  /**
+   * Retrieve value for a given key.
+   * @param {*} key
+   */
+  get(key) {
+    // If there is a timestamp for this value and it has passed, "clamp" deletion by returning undefined
+    if (this.timestamps.has(key) && this.timestamps.get(key) < Date.now()) {
+      return undefined;
+    }
+
+    // Otherwise, return normal Map get
+    return super.get(key);
+  }
+
+  /**
+   * Check if parent map has a given key.
+   * @param {*} key
+   */
+  has(key) {
+    // Also do a "clamping" deletion check here
+    if (this.timestamps.has(key) && this.timestamps.get(key) < Date.now()) {
+      return false;
+    }
+
+    return super.has(key);
   }
 }
 
